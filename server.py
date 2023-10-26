@@ -39,4 +39,29 @@ def accept_connections():
         clients[player_name]['player_name'] = player_name
         print('Connection established with '+player_name+': '+address[0])
 
+def handleClient(player_socket,player_name):
+    global clients
+    global SERVER
+
+    player_type = clients[player_name]['player_type']
+    if(player_type=='player1'):
+        clients[player_name]['turn'] = True
+        player_socket.send(str({'player_type':clients[player_name]['player_type'],
+                                'turn':clients[player_name]['turn'],
+                                'player_name':player_name}).encode('utf-8'))
+    else:
+        clients[player_name]['turn'] = False
+        player_socket.send(str({'player_type':clients[player_name]['player_type'],
+                                'turn':clients[player_name]['turn'],
+                                'player_name':player_name}).encode('utf-8'))
+    while(True):
+        try:
+            message = player_socket.recv(2048).decode('utf-8')
+            if(message):
+                for cname in clients:
+                    csocket = clients[cname]["player_socket"]
+                    csocket.send(message)
+        except:
+            pass
+
 setup()
