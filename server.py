@@ -1,5 +1,6 @@
 import socket
 from threading import Thread
+import json
 
 SERVER = None
 PORT = None
@@ -38,6 +39,8 @@ def accept_connections():
         clients[player_name]['turn'] = False
         clients[player_name]['player_name'] = player_name
         print('Connection established with '+player_name+': '+address[0])
+        handlingThread = Thread(target=handleClient,args=(player_socket,player_name))
+        handlingThread.start()
 
 def handleClient(player_socket,player_name):
     global clients
@@ -46,21 +49,22 @@ def handleClient(player_socket,player_name):
     player_type = clients[player_name]['player_type']
     if(player_type=='player1'):
         clients[player_name]['turn'] = True
-        player_socket.send(str({'player_type':clients[player_name]['player_type'],
-                                'turn':clients[player_name]['turn'],
-                                'player_name':player_name}).encode('utf-8'))
+        player_socket.send(json.dumps({"player_type":clients[player_name]["player_type"],
+                                "turn":clients[player_name]["turn"],
+                                "player_name":player_name}).encode("utf-8"))
     else:
         clients[player_name]['turn'] = False
-        player_socket.send(str({'player_type':clients[player_name]['player_type'],
-                                'turn':clients[player_name]['turn'],
-                                'player_name':player_name}).encode('utf-8'))
+        player_socket.send(json.dumps({"player_type":clients[player_name]["player_type"],
+                                "turn":clients[player_name]["turn"],
+                                "player_name":player_name}).encode("utf-8"))
     while(True):
         try:
             message = player_socket.recv(2048).decode('utf-8')
+            print('message'+message)
             if(message):
                 for cname in clients:
                     csocket = clients[cname]["player_socket"]
-                    csocket.send(message)
+                    csocket.send(message.encode('utf-8'))
         except:
             pass
 

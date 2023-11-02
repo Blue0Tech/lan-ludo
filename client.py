@@ -3,6 +3,7 @@ from threading import Thread
 from tkinter import *
 from PIL import ImageTk, Image
 import random
+import json
 
 SERVER = None
 PORT = None
@@ -89,19 +90,31 @@ def gameWindow():
     leftBoard()
     rightBoard()
     finishingBox()
-    createRollButton()
-
     # start thread of receiving messages where if it's player turn then call createRollButton again
+    msgReceivingThread = Thread(target=receiveMessages)
+    msgReceivingThread.start()
+    # createRollButton()
 
     GAME_WINDOW.resizable(True,True)
     GAME_WINDOW.mainloop()
 
 def receiveMessages():
     global SERVER
+    global PLAYER_TYPE
 
+    msg = SERVER.recv(2048).decode('utf-8')
+    # msg.replace('\'','"')
+    info = json.loads(msg)
+    PLAYER_TYPE = info['player_type']
+    isTurn = info['turn']
+    if(isTurn):
+        createRollButton()
+    
     while(True):
         msg = SERVER.recv(2048).decode('utf-8')
-        #
+        message = msg.split(' ')
+        if(PLAYER_TYPE in message[1]):
+            createRollButton()
 
 def leftBoard():
     global GAME_WINDOW
@@ -154,8 +167,12 @@ def rollDice():
     global PLAYER_TURN
     global ROLL_BUTTON
     global SERVER
+    global DICE
 
-    dice = CANVAS2.create_text(SCREEN_WIDTH/2+10,SCREEN_HEIGHT/2+250,text='\u2680',font=('Chalkboard SE',250),fill='white')
+    if(DICE!=None):
+        CANVAS2.delete(DICE)
+
+    DICE = CANVAS2.create_text(SCREEN_WIDTH/2+10,SCREEN_HEIGHT/2+250,text='\u2680',font=('Chalkboard SE',250),fill='white')
     dice_choices = ['\u2680','\u2681','\u2682','\u2683','\u2684','\u2685']
 
     value = random.choice(dice_choices)
@@ -165,7 +182,7 @@ def rollDice():
         SERVER.send(f'{value} player2turn'.encode("utf-8"))
     if(PLAYER_TYPE=='player2'):
         SERVER.send(f'{value} player1turn'.encode("utf-8"))
-    dice.__setattr__('-text',value)
+    CANVAS2.itemconfig(DICE,text=value)
 
 def createRollButton():
     global GAME_WINDOW
@@ -174,7 +191,7 @@ def createRollButton():
     global ROLL_BUTTON
 
     ROLL_BUTTON = Button(GAME_WINDOW,text='ROLL DICE',fg='black',font=('Chalkboard SE',15),bg='grey',command=rollDice,width=20,height=5)
-    ROLL_BUTTON.place(x=SCREEN_WIDTH/2-10,y=SCREEN_HEIGHT/2+50)
+    ROLL_BUTTON.place(x=SCREEN_WIDTH/2+10,y=SCREEN_HEIGHT/2+50)
 
 
 setup()
