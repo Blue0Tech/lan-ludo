@@ -113,7 +113,7 @@ def receiveMessages():
     while(True):
         msg = SERVER.recv(2048).decode('utf-8')
         message = msg.split(' ')
-        if(PLAYER_TYPE in message[1]):
+        if(PLAYER_TYPE in message[1]): # if player has not just played
             createRollButton()
 
 def leftBoard():
@@ -193,6 +193,62 @@ def createRollButton():
     ROLL_BUTTON = Button(GAME_WINDOW,text='ROLL DICE',fg='black',font=('Chalkboard SE',15),bg='grey',command=rollDice,width=20,height=5)
     ROLL_BUTTON.place(x=SCREEN_WIDTH/2+10,y=SCREEN_HEIGHT/2+50)
 
+def checkColourPosition(boxes,colour):
+    for box in boxes:
+        box_colour = box.cget('bg')
+        if(box_colour==colour):
+            return boxes.index(box)
+        return False
+
+def movePlayer1(steps):
+    global LEFT_BOXES
+    global FINISHING_BOX
+    global SERVER
+    global PLAYER_NAME
+    dicevalue = steps
+    box_position = checkColourPosition(LEFT_BOXES[1:],'red')
+    if(box_position):
+        colouredBoxIndex = box_position
+        totalSteps = 10
+        remainingSteps = totalSteps - colouredBoxIndex
+        if(steps==remainingSteps):
+            for box in LEFT_BOXES[1:]:
+                box.configure(bg='white')
+            FINISHING_BOX.configure(bg='red')
+            greetMessage = f'Red wins the game!'
+            SERVER.send((greetMessage).encode('utf-8'))
+        elif(steps<remainingSteps):
+            for box in LEFT_BOXES[1:]:
+                box.configure(bg='white')
+            nextStep = (colouredBoxIndex + 1) + dicevalue
+            LEFT_BOXES[nextStep].configure(bg='red')
+        else:
+            LEFT_BOXES[steps].configure('red')
+
+def movePlayer2(steps):
+    global RIGHT_BOXES
+    global FINISHING_BOX
+    global SERVER
+    global PLAYER_NAME
+    dicevalue = steps
+    box_position = checkColourPosition(RIGHT_BOXES[-2 ::-1],'yellow')
+    if(box_position):
+        colouredBoxIndex = box_position
+        totalSteps = 10
+        remainingSteps = totalSteps - colouredBoxIndex
+        if(steps==remainingSteps):
+            for box in RIGHT_BOXES[-2 ::-1]:
+                box.configure(bg='white')
+            FINISHING_BOX.configure(bg='yellow')
+            greetMessage = 'Yellow wins the game!'
+            SERVER.send((greetMessage).encode('utf-8'))
+        elif(steps<remainingSteps):
+            for box in RIGHT_BOXES[-2 ::-1]:
+                box.configure(bg='white')
+            nextStep = (colouredBoxIndex + 1) + dicevalue
+            RIGHT_BOXES[::1][nextStep].configure(bg='yellow')
+        else:
+            RIGHT_BOXES[len(RIGHT_BOXES)-steps+1].configure('yellow')
 
 setup()
 askPlayerName()
