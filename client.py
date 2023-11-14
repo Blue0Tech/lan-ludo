@@ -23,6 +23,13 @@ FINISHING_BOX = None
 PLAYER_TYPE = None
 PLAYER_TURN = None
 ROLL_BUTTON = None
+PLAYER1NAME = 'joining'
+PLAYER2NAME = 'joining'
+PLAYER1LABEL = None
+PLAYER2LABEL = None
+WINNINGFUNCTIONCALL = 0
+WINNINGMESSAGE = None
+RESETBUTTON = None
 
 def setup():
     global SERVER
@@ -101,11 +108,21 @@ def gameWindow():
 def receiveMessages():
     global SERVER
     global PLAYER_TYPE
+    global PLAYER_NAME
+    global PLAYER1NAME
+    global PLAYER2NAME
+    global CANVAS2
+    global DICE
+    global WINNINGFUNCTIONCALL
 
     msg = SERVER.recv(2048).decode('utf-8')
     # msg.replace('\'','"')
     info = json.loads(msg)
     PLAYER_TYPE = info['player_type']
+    if(PLAYER_TYPE=='player1'):
+        PLAYER1NAME = PLAYER_NAME
+    else:
+        PLAYER2NAME = PLAYER_NAME
     isTurn = info['turn']
     if(isTurn):
         createRollButton()
@@ -114,7 +131,35 @@ def receiveMessages():
         msg = SERVER.recv(2048).decode('utf-8')
         message = msg.split(' ')
         if(PLAYER_TYPE in message[1]): # if player has not just played
+            value = message[0]
+            numVal = 0
+            if(value == '⚀'):
+                numVal = 1
+            elif(value == '⚁'):
+                numVal = 2
+            elif(value == '⚂'):
+                numVal = 3
+            elif(value == '⚃'):
+                numVal = 4
+            elif(value == '⚄'):
+                numVal = 5
+            elif(value == '⚅'):
+                numVal = 6
             createRollButton()
+            if(PLAYER_TYPE == 'player1'):
+                movePlayer2(value)
+                PLAYER2NAME = message[2]
+            else:
+                movePlayer1(value)
+                PLAYER1NAME = message[2]
+        elif('wins the game!' in message and WINNINGFUNCTIONCALL == 0):
+            WINNINGFUNCTIONCALL +=1
+            handleWin(message)
+            # updateScore(message)
+        elif(message == 'reset game'):
+            # handleResetGame()
+            # if()
+            pass
 
 def leftBoard():
     global GAME_WINDOW
@@ -164,6 +209,7 @@ def rollDice():
     global SCREEN_WIDTH
     global SCREEN_HEIGHT
     global PLAYER_TYPE
+    global PLAYER_NAME
     global PLAYER_TURN
     global ROLL_BUTTON
     global SERVER
@@ -176,12 +222,27 @@ def rollDice():
     dice_choices = ['\u2680','\u2681','\u2682','\u2683','\u2684','\u2685']
 
     value = random.choice(dice_choices)
+    numVal = 0
+    if(value == '⚀'):
+        numVal = 1
+    elif(value == '⚁'):
+        numVal = 2
+    elif(value == '⚂'):
+        numVal = 3
+    elif(value == '⚃'):
+        numVal = 4
+    elif(value == '⚄'):
+        numVal = 5
+    elif(value == '⚅'):
+        numVal = 6
     ROLL_BUTTON.destroy()
     PLAYER_TURN = False
     if(PLAYER_TYPE=='player1'):
-        SERVER.send(f'{value} player2turn'.encode("utf-8"))
+        movePlayer1(numVal)
+        SERVER.send(f'{value} player2turn {PLAYER_NAME}'.encode("utf-8"))
     if(PLAYER_TYPE=='player2'):
-        SERVER.send(f'{value} player1turn'.encode("utf-8"))
+        movePlayer2(numVal)
+        SERVER.send(f'{value} player1turn {PLAYER_NAME}'.encode("utf-8"))
     CANVAS2.itemconfig(DICE,text=value)
 
 def createRollButton():
@@ -249,6 +310,46 @@ def movePlayer2(steps):
             RIGHT_BOXES[::1][nextStep].configure(bg='yellow')
         else:
             RIGHT_BOXES[len(RIGHT_BOXES)-steps+1].configure('yellow')
+
+def handleWin(message):
+    global PLAYER_TYPE
+    global ROLL_BUTTON
+    global SCREEN_WIDTH
+    global SCREEN_HEIGHT
+    global CANVAS2
+    global WINNINGMESSAGE
+    global RESETBUTTON
+    
+    if('Red' in message):
+        if(PLAYER_TYPE=='player2'):
+            ROLL_BUTTON.destroy()
+    elif('Yellow' in message):
+        if(PLAYER_TYPE=='player1'):
+            ROLL_BUTTON.destroy()
+    message = message.split(' ')[0] + "."
+    CANVAS2.itemconfigure(WINNINGMESSAGE,text=message)
+    RESETBUTTON.place(x=SCREEN_WIDTH/2-80,y=SCREEN_HEIGHT-220)
+
+# def receivedMessage():
+#     global SERVER
+#     global PLAYER_TYPE
+#     global PLAYER_TURN
+#     global ROLL_BUTTON
+#     global SCREEN_WIDTH
+#     global SCREEN_HEIGHT
+#     global CANVAS2
+#     global DICE
+#     global GAME_WINDOW
+#     global PLAYER1NAME
+#     global PLAYER2NAME
+#     global PLAYER1LABEL
+#     global PLAYER2LABEL
+#     global WINNINGFUNCTIONCALL
+
+#     while(True):
+#         message = SERVER.recv(2048).decode('utf-8')
+#         if('PLAYER_TYPE' in message):
+#             pass
 
 setup()
 askPlayerName()
